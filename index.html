@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Новый рассвет — New Dawn</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" type="image/png" href="icon-512.png">
+<!-- Yandex Games SDK: в консоли разработчика этот путь отдаётся автоматически.
+     Локально файла нет — мост js/sdk.js корректно работает на заглушке. -->
+<script src="/sdk.js"></script>
+<!-- VK Bridge (VK Игры на vk.com): подтягивается с официального CDN.
+     Если vkBridge отсутствует (Яндекс/локально) — js/vk.js не активируется,
+     и мост js/sdk.js продолжает работать как раньше. -->
+<script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+</head>
+<body data-planet="0">
+
+  <!-- Экран легенды (загрузка) -->
+  <div id="loading-screen" class="screen">
+    <div class="legend">
+      <div class="legend-badge">ГОД 2147</div>
+      <h1 class="legend-title" data-i18n="legend_title">Новый рассвет</h1>
+      <p class="legend-text" data-i18n="legend_text"></p>
+      <button id="legend-start" class="btn btn-primary btn-lg" data-i18n="legend_cta"></button>
+    </div>
+  </div>
+
+  <!-- Игровой экран -->
+  <div id="game-screen" class="screen hidden">
+    <header id="hud">
+      <div class="hud-left">
+        <div class="hud-energy">
+          <span class="hud-label" data-i18n="hud_energy"></span>
+          <span id="energy-value" class="hud-value">0</span>
+        </div>
+        <div class="hud-sub">
+          <span id="per-sec-value">0/с</span>
+          <span class="hud-sep">•</span>
+          <span id="planet-name"></span>
+          <span class="hud-sep">•</span>
+          <span id="prestige-points"></span>
+        </div>
+        <div class="hud-next">
+          <div class="hud-next-bar"><div id="next-planet-fill" class="hud-next-fill"></div></div>
+          <span id="next-planet-text" class="hud-next-text"></span>
+        </div>
+      </div>
+      <div class="hud-right">
+        <button id="leaderboard-btn" class="btn btn-icon btn-leaderboard" data-i18n-title="leaderboard_btn" title="">🏆</button>
+        <button id="prestige-btn" class="btn btn-prestige hidden" data-i18n="prestige_btn"></button>
+        <button id="settings-btn" class="btn btn-icon" title="⚙">⚙</button>
+      </div>
+    </header>
+
+    <main id="main-area">
+      <section id="reactor-zone">
+        <div id="reactor-panel">
+          <div class="reactor-ring"></div>
+          <div class="reactor-core"></div>
+          <div class="reactor-label" data-i18n="reactor_tap"></div>
+          <div id="tap-cost" class="reactor-tap-cost"></div>
+        </div>
+        <div id="workers"></div>
+        <div id="particles"></div>
+      </section>
+
+      <!-- Правая колонка: панель покупок + окно диспетчера под ней -->
+      <div id="side-column">
+        <aside id="buildings-panel">
+          <h2 class="panel-title" data-i18n="buildings_title"></h2>
+          <div id="buildings-list"></div>
+          <!-- Стрелка-подсказка: показывает, что ниже в списке есть ещё карточки -->
+          <div id="scroll-hint" aria-hidden="true">▼</div>
+        </aside>
+
+        <!-- Диспетчер: отдельное окно под панелью покупок -->
+        <div id="dispatcher" aria-hidden="true">
+          <div class="dispatcher-avatar">
+            <div class="disp-antenna"></div>
+            <div class="disp-visor"></div>
+            <div class="disp-mouth"></div>
+          </div>
+          <div class="dispatcher-bubble"></div>
+        </div>
+      </div>
+    </main>
+
+    <div id="meteor-layer"></div>
+    <div id="toasts"></div>
+  </div>
+
+  <!-- Звёздное небо (генерируется в ui.js) -->
+  <div id="stars" aria-hidden="true"></div>
+
+  <!-- Модалка: оффлайн-отчёт -->
+  <div id="modal-offline" class="modal hidden">
+    <div class="modal-box">
+      <h2 data-i18n="offline_title"></h2>
+      <p id="offline-text"></p>
+      <button class="btn btn-primary" data-i18n="offline_btn"></button>
+    </div>
+  </div>
+
+  <!-- Модалка: rewarded-реклама -->
+  <div id="modal-rewarded" class="modal hidden">
+    <div class="modal-box">
+      <h2 data-i18n="rewarded_title"></h2>
+      <p id="rewarded-text"></p>
+      <button id="rewarded-confirm" class="btn btn-primary" data-i18n="rewarded_confirm"></button>
+      <div style="margin-top: 12px;">
+        <button id="rewarded-close" class="btn btn-small" data-i18n="close_btn"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модалка: буст добычи ×2 на время -->
+  <div id="modal-boost" class="modal hidden">
+    <div class="modal-box">
+      <h2 data-i18n="boost_title"></h2>
+      <p id="boost-text"></p>
+      <button id="boost-confirm" class="btn btn-primary" data-i18n="boost_confirm"></button>
+      <div style="margin-top: 12px;">
+        <button id="boost-close" class="btn btn-small" data-i18n="close_btn"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модалка: сертификация отряда -->
+  <div id="modal-milestone" class="modal hidden">
+    <div class="modal-box">
+      <h2 data-i18n="milestone_title"></h2>
+      <p id="milestone-text"></p>
+      <button class="btn btn-primary" data-i18n="close_btn"></button>
+    </div>
+  </div>
+
+  <!-- Модалка: престиж -->
+  <div id="modal-prestige" class="modal hidden">
+    <div class="modal-box">
+      <h2 data-i18n="prestige_title"></h2>
+      <p id="prestige-text1"></p>
+      <p id="prestige-text2"></p>
+      <p id="prestige-earned" class="prestige-earned"></p>
+      <button id="prestige-confirm" class="btn btn-primary" data-i18n="prestige_confirm"></button>
+    </div>
+  </div>
+
+  <!-- Модалка: таблица лидеров -->
+  <div id="modal-leaderboard" class="modal hidden">
+    <div class="modal-box modal-box-lg">
+      <h2 data-i18n="leaderboard_title"></h2>
+      <p id="leaderboard-meta" class="lb-meta"></p>
+      <div id="leaderboard-list"></div>
+      <button class="btn btn-primary" data-i18n="close_btn"></button>
+    </div>
+  </div>
+
+  <!-- Модалка: настройки -->
+  <div id="modal-settings" class="modal hidden">
+    <div class="modal-box">
+      <h2 data-i18n="settings_title"></h2>
+      <div class="setting-row">
+        <span data-i18n="settings_sound"></span>
+        <button id="sound-toggle" class="btn btn-small"></button>
+      </div>
+      <div class="setting-row">
+        <span data-i18n="settings_music"></span>
+        <button id="music-toggle" class="btn btn-small"></button>
+      </div>
+      <div class="setting-row">
+        <span data-i18n="settings_lang"></span>
+        <button id="lang-toggle" class="btn btn-small"></button>
+      </div>
+      <button class="btn btn-primary" data-i18n="close_btn"></button>
+    </div>
+  </div>
+
+  <!-- Dev-панель (?dev=1) -->
+  <div id="dev-panel" class="hidden">
+    <button id="dev-energy" class="btn btn-small">+1e12</button>
+    <button id="dev-meteor" class="btn btn-small">Метеорит</button>
+    <button id="dev-rewarded" class="btn btn-small">Rewarded</button>
+    <button id="dev-prestige" class="btn btn-small">Престиж</button>
+    <button id="dev-reset" class="btn btn-small">Сброс</button>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/sdk.js"></script>
+  <script src="js/vk.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/save.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

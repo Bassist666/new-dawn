@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Фон: глубокий космос с янтарным свечением (тема Ксанты) -->
+    <radialGradient id="bg" cx="50%" cy="36%" r="80%">
+      <stop offset="0%" stop-color="#3a2408"/>
+      <stop offset="38%" stop-color="#1c1005"/>
+      <stop offset="72%" stop-color="#0d0703"/>
+      <stop offset="100%" stop-color="#0a0603"/>
+    </radialGradient>
+
+    <!-- Ядро реактора -->
+    <radialGradient id="core" cx="38%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#fff6dd"/>
+      <stop offset="30%" stop-color="#ffd27a"/>
+      <stop offset="60%" stop-color="#ff9d2e"/>
+      <stop offset="100%" stop-color="#d95a00"/>
+    </radialGradient>
+
+    <!-- Тор (кольцо реактора) -->
+    <linearGradient id="ring" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffb98f"/>
+      <stop offset="45%" stop-color="#ffb347"/>
+      <stop offset="100%" stop-color="#c95300"/>
+    </linearGradient>
+
+    <!-- Ледяная планета (Эрвин) -->
+    <radialGradient id="planet" cx="35%" cy="28%" r="80%">
+      <stop offset="0%" stop-color="#bfe9ff"/>
+      <stop offset="40%" stop-color="#4fb3ff"/>
+      <stop offset="100%" stop-color="#0b3a66"/>
+    </radialGradient>
+
+    <!-- Свечение вокруг ядра -->
+    <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="55%" stop-color="#ff7b00" stop-opacity=".55"/>
+      <stop offset="100%" stop-color="#ff7b00" stop-opacity="0"/>
+    </radialGradient>
+
+    <filter id="soft" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+
+  <!-- Фон -->
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- Звёзды -->
+  <g fill="#fff">
+    <circle cx="68" cy="86" r="2.4" opacity=".9"/>
+    <circle cx="170" cy="46" r="1.7" opacity=".6"/>
+    <circle cx="448" cy="74" r="2.2" opacity=".85"/>
+    <circle cx="402" cy="150" r="1.5" opacity=".55"/>
+    <circle cx="90" cy="210" r="1.6" opacity=".5"/>
+    <circle cx="470" cy="300" r="1.8" opacity=".6"/>
+    <circle cx="42" cy="330" r="1.5" opacity=".5"/>
+    <circle cx="470" cy="440" r="2.1" opacity=".75"/>
+    <circle cx="330" cy="60" r="1.4" opacity=".45"/>
+    <circle cx="250" cy="32" r="1.9" opacity=".7"/>
+  </g>
+
+  <!-- Свечение реактора -->
+  <circle cx="256" cy="256" r="205" fill="url(#coreGlow)"/>
+
+  <!-- Внешние тонкие кольца -->
+  <circle cx="256" cy="256" r="214" fill="none" stroke="#ffb347" stroke-width="2.5" opacity=".28"/>
+  <circle cx="256" cy="256" r="118" fill="none" stroke="#ff7b00" stroke-width="2.5" opacity=".35"/>
+
+  <!-- Тор (кольцо реактора) -->
+  <circle cx="256" cy="256" r="166" fill="none" stroke="url(#ring)" stroke-width="24"/>
+  <circle cx="256" cy="256" r="166" fill="none" stroke="#fff" stroke-width="3" opacity=".35"/>
+
+  <!-- Блики на торе -->
+  <path d="M 100 190 A 190 190 0 0 1 412 190" fill="none" stroke="#fff3d6" stroke-width="4" stroke-linecap="round" opacity=".85"/>
+
+  <!-- Орбитальные спутники (воркеры) -->
+  <g>
+    <circle cx="256" cy="90" r="7" fill="#1c1005" stroke="#ffb347" stroke-width="3.5"/>
+    <circle cx="422" cy="256" r="7" fill="#1c1005" stroke="#ffb347" stroke-width="3.5"/>
+    <circle cx="90" cy="256" r="7" fill="#1c1005" stroke="#ffb347" stroke-width="3.5"/>
+  </g>
+
+  <!-- Ядро -->
+  <circle cx="256" cy="256" r="116" fill="url(#core)"/>
+  <!-- Тень в нижней части ядра -->
+  <ellipse cx="256" cy="316" rx="96" ry="44" fill="#7a2d00" opacity=".28"/>
+  <!-- Верхний блик ядра -->
+  <ellipse cx="226" cy="206" rx="52" ry="30" fill="#fff" opacity=".28" transform="rotate(-28 226 206)"/>
+  <circle cx="256" cy="256" r="116" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="2"/>
+
+  <!-- Ледяная планета с кольцом (внизу слева) -->
+  <g>
+    <ellipse cx="126" cy="402" rx="70" ry="20" fill="#7fd4ff" opacity=".55" transform="rotate(-18 126 402)"/>
+    <circle cx="126" cy="402" r="46" fill="url(#planet)"/>
+    <ellipse cx="110" cy="388" rx="20" ry="12" fill="#fff" opacity=".35" transform="rotate(-18 110 388)"/>
+    <ellipse cx="126" cy="402" rx="72" ry="21" fill="none" stroke="#dff3ff" stroke-width="4" opacity=".8" transform="rotate(-18 126 402)"/>
+  </g>
+
+  <!-- Искры-блики -->
+  <g fill="#fff" opacity=".9">
+    <path d="M 396 60 l 4 12 12 4 -12 4 -4 12 -4 -12 -12 -4 12 -4 z"/>
+    <path d="M 64 150 l 3 9 9 3 -9 3 -3 9 -3 -9 -9 -3 9 -3 z" opacity=".7"/>
+  </g>
+</svg>
