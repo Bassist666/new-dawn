@@ -9,10 +9,8 @@
 <!-- Yandex Games SDK: в консоли разработчика этот путь отдаётся автоматически.
      Локально файла нет — мост js/sdk.js корректно работает на заглушке. -->
 <script src="/sdk.js"></script>
-<!-- VK Bridge (VK Игры на vk.com): подтягивается с официального CDN.
-     Если vkBridge отсутствует (Яндекс/локально) — js/vk.js не активируется,
-     и мост js/sdk.js продолжает работать как раньше. -->
-<script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+<!-- VK Bridge НЕ подключается синхронно: js/vk.js сам грузит его динамически
+     (только при запуске внутри VK), чтобы запуск игры не зависел от внешнего CDN. -->
 </head>
 <body data-planet="0">
 

@@ -1,44 +1,63 @@
 /* ============================================================
    «Новый рассвет» — мост VK Bridge (VK Игры на vk.com).
-   Подключается ПОСЛЕ js/sdk.js и ПЕРЕОПРЕДЕЛЯЕТ NG.SDK только
-   когда игра реально запущена через VK Bridge (window.vkBridge).
+   Загружается ПОСЛЕ js/sdk.js и ПЕРЕОПРЕДЕЛЯЕТ NG.SDK, только если
+   игра запущена внутри VK (признак: query-параметры vk_* от ВКонтакте
+   в адресе iframe, либо referrer с vk.com).
+
+   Внешний скрипт VK Bridge НЕ подключается синхронно: он грузится
+   динамически с официального CDN с таймаутом, поэтому запуск игры,
+   рендер легенды и обработчики не зависят от сети/CDN.
 
    Каскад платформ:
-     1) vk.com   → window.vkBridge есть → работает этот мост;
-     2) yandex   → window.YaGames есть  → работает мост из js/sdk.js;
+     1) vk.com   → есть признаки VK → активен этот мост;
+     2) yandex   → window.YaGames есть  → мост из js/sdk.js;
      3) локально → нет ни того, ни другого → заглушка из js/sdk.js.
 
-   Облачные сейвы — через VK WebApp Storage (до ~4 КБ на значение).
-   Реклама — VKWebAppShowNativeAds (interstitial / reward).
-   Лидерборды: у VK нет публичного web-API «записи счёта» без серверной
-   части приложения, поэтому submitScore/getLeaderboard честно
-   деградируют (false/null) — UI и так умеет их обрабатывать.
+   Лидерборд в VK-версии скрыт: ui.js прячет кнопку по NG.SDK.vk.
    ============================================================ */
 (function () {
   'use strict';
 
-  // Нет VK Bridge (локальная разработка / Яндекс) — не мешаем sdk.js.
-  if (!window.vkBridge) return;
+  // Признак запуска внутри VK Игр: VK передаёт в iframe query-параметры
+  // вида vk_user_id / vk_app_id и т.п. Страховка — referrer с vk.com.
+  var q = window.location.search;
+  var isVK = /(?:[?&](?:vk_|VK_))/.test(q) ||
+             /(?:^|[?&])vk_user_id=/.test(q) ||
+             (window.parent !== window &&
+              /(?:^|\.)vk\.com$/i.test((document.referrer || '').split('/')[2] || ''));
+  if (!isVK) return; // не VK → не мешаем мосту js/sdk.js (Яндекс / локально)
 
-  // Ключ облачного сейва: тот же, что и у локального localStorage.
+  var BRIDGE_SRC = 'https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js';
   var KEY = (window.NG && NG.CONFIG && NG.CONFIG.save)
     ? NG.CONFIG.save.localKey
     : 'new-dawn-save';
 
+  // Динамическая загрузка VK Bridge: async-скрипт + таймаут 4 с,
+  // чтобы сетевые проблемы CDN никогда не блокировали запуск игры.
+  var bridgePromise = new Promise(function (resolve) {
+    if (window.vkBridge) { resolve(); return; }
+    var s = document.createElement('script');
+    s.src = BRIDGE_SRC;
+    s.async = true;
+    s.onload = function () { resolve(); };
+    s.onerror = function () { resolve(); };
+    var guard = setTimeout(function () { resolve(); }, 4000);
+    document.head.appendChild(s);
+  });
+
   var SDK = {
-    fake: false,   // VK-мост считается «настоящим» платформенным
+    fake: false,
     vk: true,
-    lang: 'ru',    // проставляется при init() из VKWebAppGetClientInfo
+    lang: 'ru',
 
     init: function () {
-      return new Promise(function (resolve) {
-        var done = false;
-        var finish = function () { if (!done) { done = true; resolve(); } };
-        // Страховка: если vkBridge есть, но окружение не vk.com и методы
-        // не отвечают — не блокируем запуск игры (легенда не «зависает»).
-        var guard = setTimeout(finish, 3000);
+      return bridgePromise.then(function () {
+        return new Promise(function (resolve) {
+          if (!window.vkBridge) { resolve(); return; } // CDN недоступен — живём на заглушке
+          var done = false;
+          var finish = function () { if (!done) { done = true; resolve(); } };
+          var guard = setTimeout(finish, 3000);
 
-        try {
           window.vkBridge.send('VKWebAppInit', {})
             .catch(function () { /* web-окружение может не требовать init */ })
             .finally(function () { clearTimeout(guard); finish(); });
@@ -50,10 +69,7 @@
               SDK.lang = (l === 'en') ? 'en' : 'ru';
             })
             .catch(function () {});
-        } catch (e) {
-          clearTimeout(guard);
-          finish();
-        }
+        });
       });
     },
 
@@ -61,17 +77,16 @@
       return SDK.lang === 'en' ? 'en' : 'ru';
     },
 
-    // Аналог LoadingAPI: у VK нет обязательного сигнала готовности —
-    // инициализация уже прошла в init(); метод оставлен для совместимости.
+    // Аналог LoadingAPI: у VK нет обязательного сигнала готовности.
     loadingReady: function () {
       try { window.vkBridge.send('VKWebAppShowLoadingScreen', {}).catch(function () {}); } catch (e) {}
     },
 
-    // Аналог GameplayAPI: VK не требует стоп/старт геймплея, no-op.
     gameplayStart: function () {},
     gameplayStop: function () {},
 
     cloudLoad: function () {
+      if (!window.vkBridge) return Promise.resolve(null);
       return window.vkBridge.send('VKWebAppStorageGet', { keys: [KEY] })
         .then(function (res) {
           var arr = (res && res.keys) || [];
@@ -83,6 +98,7 @@
     },
 
     cloudSave: function (data) {
+      if (!window.vkBridge) return Promise.resolve(false);
       return window.vkBridge.send('VKWebAppStorageSet', {
         key: KEY,
         value: JSON.stringify(data || {})
@@ -91,18 +107,13 @@
         .catch(function () { return false; });
     },
 
-    // Лидерборд VK требует серверную часть/настройки в консоли VK Игр —
-    // для автономного web-билда честно возвращаем false (игра не ломается).
-    submitScore: function () {
-      return Promise.resolve(false);
-    },
-
-    getLeaderboard: function () {
-      return Promise.resolve(null);
-    },
+    // Лидерборд VK требует серверной части — деградируем (кнопка 🏆 скрыта).
+    submitScore: function () { return Promise.resolve(false); },
+    getLeaderboard: function () { return Promise.resolve(null); },
 
     showInterstitial: function () {
       return new Promise(function (resolve) {
+        if (!window.vkBridge) { resolve(false); return; }
         try {
           window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'interstitial' })
             .then(function () { resolve(true); })
@@ -113,12 +124,12 @@
 
     /**
      * Rewarded: VKWebAppShowNativeAds({ ad_format: 'reward' }).
-     * Всегда резолвится { shown, rewarded }; страховочный таймаут 90 с,
-     * чтобы «подвисшая» реклама не блокировала игрока навсегда.
+     * Всегда резолвится { shown, rewarded }; страховочный таймаут 90 с.
      */
     showRewardedVideo: function (callbacks) {
       return new Promise(function (resolve) {
         var cb = callbacks || {};
+        if (!window.vkBridge) { resolve({ shown: false, rewarded: false }); return; }
         var done = false;
         var rewarded = false;
         var finish = function (shown) {
