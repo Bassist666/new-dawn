@@ -11,6 +11,9 @@
     NG.SDK.init().then(function () {
       // Язык платформы
       var lang = NG.SDK.getLang();
+      // Dev/съёмка: принудительный язык (?lang=en|ru) — для EN-скриншотов и видео
+      var forced = (location.search.match(/[?&]lang=(en|ru)/) || [])[1];
+      if (forced) lang = forced;
       NG.I18N.setLang(lang);
       NG.Game.state.lang = lang;
 
