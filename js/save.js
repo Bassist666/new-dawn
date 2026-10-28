@@ -11,7 +11,7 @@
   function serialize() {
     var s = NG.Game.state;
     return {
-      v: 5,
+      v: 6,
       e: s.energy,
       tE: s.totalEarned,
       sE: s.stintEarned,
@@ -24,8 +24,11 @@
       m: s.muted,
       M: s.music,
       rA: s.lastRewardedAt || 0,
+      rD: s.rewardDay || '',
+      rC: s.rewardCount || 0,
       lB: s.lastBoostAt || 0,
-      sB: s.sessionBoost || 0,
+      bD: s.boostDay || '',
+      bC: s.boostCount || 0,
       bU: s.boostUntil || 0
     };
   }
@@ -45,8 +48,11 @@
     if (typeof d.m === 'boolean') s.muted = d.m;
     if (typeof d.M === 'boolean') s.music = d.M;
     s.lastRewardedAt = +d.rA || 0;
+    s.rewardDay = d.rD || '';
+    s.rewardCount = +d.rC || 0;
     s.lastBoostAt = +d.lB || 0;
-    s.sessionBoost = +d.sB || 0;
+    s.boostDay = d.bD || '';
+    s.boostCount = +d.bC || 0;
     s.boostUntil = +d.bU || 0;
   }
 

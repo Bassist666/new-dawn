@@ -33,9 +33,11 @@
     muted: false,
     music: true,
     lastRewardedAt: 0,   // ts последней rewarded-рекламы (кулдаун)
-    sessionRewarded: 0,  // просмотров rewarded за сессию
+    rewardDay: '',       // календарный день, за который копятся просмотры
+    rewardCount: 0,      // просмотров rewarded в текущем дне (сброс в полночь)
     lastBoostAt: 0,      // ts последнего включения буста ×2 (кулдаун)
-    sessionBoost: 0,     // включений буста за сессию
+    boostDay: '',        // календарный день, за который копятся включения буста
+    boostCount: 0,       // включений буста в текущем дне (сброс в полночь)
     boostUntil: 0        // ts окончания действия буста ×2
   };
 
@@ -224,9 +226,29 @@
     return Math.max(rwCfg.rewardMult * incomePerSec(), rwCfg.minReward);
   }
 
-  // Текущее состояние кнопки rewarded: готово / кулдаун / лимит сессии.
+  /* ---------- Суточные лимиты rewarded/буста ---------- */
+  // Ключ календарного дня (локальное время пользователя) — смена дня
+  // автоматически обнуляет счётчики, даже если игра открыта всю ночь.
+  function dayKey() {
+    var d = new Date();
+    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  }
+
+  // Сколько использований накоплено в текущем дне (для пары день/счётчик).
+  function dayUsage(dayField, countField) {
+    return state[dayField] === dayKey() ? (state[countField] || 0) : 0;
+  }
+
+  // Увеличить счётчик текущего дня, при смене дня — начать с нуля.
+  function bumpDayUsage(dayField, countField) {
+    var dk = dayKey();
+    if (state[dayField] !== dk) { state[dayField] = dk; state[countField] = 0; }
+    state[countField] = (state[countField] || 0) + 1;
+  }
+
+  // Текущее состояние кнопки rewarded: готово / кулдаун / суточный лимит.
   function rewardedState() {
-    var maxed = state.sessionRewarded >= rwCfg.maxPerSession;
+    var maxed = dayUsage('rewardDay', 'rewardCount') >= rwCfg.maxPerDay;
     var elapsedSec = (Date.now() - (state.lastRewardedAt || 0)) / 1000;
     var secsLeft = Math.max(0, Math.ceil(rwCfg.cooldownSec - elapsedSec));
     return {
@@ -242,7 +264,7 @@
     var r = rewardedReward();
     addEnergy(r);
     state.lastRewardedAt = Date.now();
-    state.sessionRewarded = (state.sessionRewarded || 0) + 1;
+    bumpDayUsage('rewardDay', 'rewardCount');
     NG.Events.emit('rewarded', r);
     return r;
   }
@@ -250,9 +272,9 @@
   /* ---------- Rewarded: буст ×2 на время ---------- */
   var boostCfg = rwCfg.boost;
 
-  // Состояние кнопки буста: активно / готово / кулдаун / лимит сессии.
+  // Состояние кнопки буста: активно / готово / кулдаун / суточный лимит.
   function boostState() {
-    var maxed = state.sessionBoost >= boostCfg.maxPerSession;
+    var maxed = dayUsage('boostDay', 'boostCount') >= boostCfg.maxPerDay;
     var activeMs = Math.max(0, (state.boostUntil || 0) - Date.now());
     var elapsedSec = (Date.now() - (state.lastBoostAt || 0)) / 1000;
     var secsLeft = Math.max(0, Math.ceil(boostCfg.cooldownSec - elapsedSec));
@@ -271,7 +293,7 @@
     var seconds = boostCfg.durationSec;
     state.boostUntil = Date.now() + seconds * 1000;
     state.lastBoostAt = Date.now();
-    state.sessionBoost = (state.sessionBoost || 0) + 1;
+    bumpDayUsage('boostDay', 'boostCount');
     NG.Events.emit('boost', { seconds: seconds });
     return { seconds: seconds };
   }
@@ -335,9 +357,11 @@
     state.tapLevel = 0;
     state.lastSeen = Date.now();
     state.lastRewardedAt = 0;
-    state.sessionRewarded = 0;
+    state.rewardDay = '';
+    state.rewardCount = 0;
     state.lastBoostAt = 0;
-    state.sessionBoost = 0;
+    state.boostDay = '';
+    state.boostCount = 0;
     state.boostUntil = 0;
   }
 

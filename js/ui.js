@@ -442,7 +442,7 @@
   function renderBoosterCards() {
     if (!boosterCards.length) return;
 
-    // Карточка rewarded-энергии: награда / кулдаун / лимит сессии
+    // Карточка rewarded-энергии: награда / кулдаун / суточный лимит
     var rw = NG.Game.rewardedState();
     var r = boosterCards[0];
     r.income.textContent = '⚡ +' + fmtShort(rw.reward);
